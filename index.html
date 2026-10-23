@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CoinDCX Futures Screener & Pre-Flight Engine</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body { background-color: #0b0f19; color: #e2e8f0; font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; }
+    .bg-card { background-color: #111827; }
+    .bg-card-subtle { background-color: #1a2234; }
+    .border-subtle { border-color: #243049; }
+  </style>
+</head>
+<body class="p-3 sm:p-6 min-h-screen">
+
+  <!-- HEADER -->
+  <header class="flex flex-col md:flex-row md:items-center justify-between pb-6 border-b border-subtle gap-4">
+    <div>
+      <div class="flex items-center gap-3">
+        <span class="px-2.5 py-1 text-xs font-bold rounded bg-blue-600/20 text-blue-400 border border-blue-500/30">COINDCX FUTURES</span>
+        <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+          Pre-Flight Screener &amp; Execution Engine
+        </h1>
+      </div>
+      <p class="text-xs text-slate-400 mt-1">
+        Asymmetric Execution Engine: 50% Time-Decay Gate &bull; 15m Technical Trigger &bull; Breakeven Dynamic Protection
+      </p>
+    </div>
+
+    <!-- IST CLOCK & SYNC -->
+    <div class="flex items-center gap-3">
+      <div class="bg-card-subtle px-4 py-2 rounded-lg border border-subtle text-right">
+        <div class="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Indian Standard Time (IST)</div>
+        <div id="ist-clock" class="text-sm font-mono font-bold text-emerald-400">--:--:-- IST</div>
+      </div>
+      <button onclick="refreshData()" class="p-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors text-xs font-semibold flex items-center gap-1.5 shadow-lg shadow-blue-600/20">
+        <i class="fa-solid fa-arrows-rotate" id="refresh-icon"></i>
+        <span>Sync</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- KPI SUMMARY ROW -->
+  <section class="grid grid-cols-2 md:grid-cols-4 gap-4 my-6">
+    <div class="bg-card p-4 rounded-xl border border-subtle">
+      <div class="text-xs text-slate-400 uppercase font-semibold">Active Screened Picks</div>
+      <div id="stat-active" class="text-2xl font-black text-white mt-1">1</div>
+      <div class="text-[11px] text-blue-400 mt-1"><i class="fa-solid fa-filter mr-1"></i>Macro Evaluated</div>
+    </div>
+    <div class="bg-card p-4 rounded-xl border border-subtle">
+      <div class="text-xs text-slate-400 uppercase font-semibold">Ready to Execute</div>
+      <div id="stat-ready" class="text-2xl font-black text-emerald-400 mt-1">1</div>
+      <div class="text-[11px] text-emerald-400 mt-1"><i class="fa-solid fa-check-circle mr-1"></i>15m Confirmed</div>
+    </div>
+    <div class="bg-card p-4 rounded-xl border border-subtle">
+      <div class="text-xs text-slate-400 uppercase font-semibold">Backtest Win Rate</div>
+      <div class="text-2xl font-black text-purple-400 mt-1">62.5%</div>
+      <div class="text-[11px] text-purple-300 mt-1"><i class="fa-solid fa-shield-halved mr-1"></i>Breakeven Protection</div>
+    </div>
+    <div class="bg-card p-4 rounded-xl border border-subtle">
+      <div class="text-xs text-slate-400 uppercase font-semibold">Realized Net PnL</div>
+      <div class="text-2xl font-black text-emerald-400 mt-1">+₹14,280</div>
+      <div class="text-[11px] text-slate-400 mt-1">Risk Capped at 1.5%</div>
+    </div>
+  </section>
+
+  <!-- MAIN TWO-COLUMN WORKSPACE -->
+  <main class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+    <!-- LEFT: SIGNALS & ENGINE CARDS -->
+    <div class="lg:col-span-7 space-y-4">
+      <div class="flex items-center justify-between">
+        <h2 class="text-sm font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+          <i class="fa-solid fa-satellite-dish text-blue-400"></i> Active Pick Screeners
+        </h2>
+        <span class="text-xs text-slate-400">Evaluated every 15 mins</span>
+      </div>
+
+      <div id="signals-container" class="space-y-4"></div>
+    </div>
+
+    <!-- RIGHT: CALCULATOR & ORDER BLUEPRINT -->
+    <div class="lg:col-span-5 space-y-6">
+
+      <!-- TOOL: POSITION SIZING CALCULATOR -->
+      <div class="bg-card p-5 rounded-xl border border-subtle">
+        <div class="flex items-center justify-between pb-3 border-b border-subtle">
+          <h3 class="text-sm font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-calculator text-amber-400"></i> CoinDCX Position Sizer (₹ INR)
+          </h3>
+          <span class="text-[11px] px-2 py-0.5 rounded bg-amber-400/10 text-amber-400 border border-amber-400/20">Fixed Risk</span>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3 mt-4 text-xs">
+          <div>
+            <label class="text-slate-400 block mb-1">Total Capital (₹)</label>
+            <input type="number" id="calc-wallet" value="100000" oninput="calculatePosition()" class="w-full bg-card-subtle border border-subtle rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:border-blue-500">
+          </div>
+          <div>
+            <label class="text-slate-400 block mb-1">Risk per Trade (%)</label>
+            <select id="calc-risk" onchange="calculatePosition()" class="w-full bg-card-subtle border border-subtle rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500">
+              <option value="0.01">1.0% (Conservative)</option>
+              <option value="0.015" selected>1.5% (Recommended)</option>
+              <option value="0.02">2.0% (Aggressive)</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-slate-400 block mb-1">Entry Price (₹)</label>
+            <input type="number" id="calc-entry" value="5865000" oninput="calculatePosition()" class="w-full bg-card-subtle border border-subtle rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:border-blue-500">
+          </div>
+          <div>
+            <label class="text-slate-400 block mb-1">Stop Loss (₹)</label>
+            <input type="number" id="calc-sl" value="5710000" oninput="calculatePosition()" class="w-full bg-card-subtle border border-subtle rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:border-blue-500">
+          </div>
+          <div class="col-span-2">
+            <label class="text-slate-400 block mb-1">Futures Leverage</label>
+            <div class="flex items-center gap-3">
+              <input type="range" id="calc-leverage" min="1" max="20" value="5" oninput="updateLeverageLabel(this.value); calculatePosition()" class="w-full accent-blue-500">
+              <span id="leverage-val" class="text-sm font-mono font-bold text-blue-400 w-10 text-right">5x</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- CALCULATION RESULTS -->
+        <div class="mt-5 p-3.5 bg-card-subtle rounded-lg border border-subtle space-y-2 text-xs font-mono">
+          <div class="flex justify-between">
+            <span class="text-slate-400">Max Allowed Loss:</span>
+            <span id="res-max-loss" class="text-rose-400 font-bold">₹1,500</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-400">Total Position Value:</span>
+            <span id="res-pos-val" class="text-white font-bold">₹56,234</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-400">Initial Margin (₹ Required):</span>
+            <span id="res-margin" class="text-blue-400 font-bold">₹11,247</span>
+          </div>
+          <div class="flex justify-between border-t border-subtle/60 pt-2">
+            <span class="text-slate-400">R:R to TP1:</span>
+            <span id="res-rr" class="text-emerald-400 font-bold">1.63 : 1</span>
+          </div>
+        </div>
+
+        <button onclick="copyBlueprint()" class="w-full mt-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 transition-colors">
+          <i class="fa-regular fa-copy"></i>
+          <span id="copy-btn-text">Copy Order Blueprint for CoinDCX</span>
+        </button>
+      </div>
+
+      <!-- AUDITED TRADE HISTORY -->
+      <div class="bg-card p-5 rounded-xl border border-subtle">
+        <h3 class="text-sm font-bold text-white mb-3 flex items-center gap-2">
+          <i class="fa-solid fa-clock-rotate-left text-slate-400"></i> Closed Trades Ledger
+        </h3>
+        <div id="history-container" class="space-y-2 text-xs"></div>
+      </div>
+
+    </div>
+  </main>
+
+  <script>
+    let state = {
+      active_signals: [
+        {
+          id: "SIG-101",
+          pair: "BTCINR",
+          direction: "BUY",
+          entry_low: 5820000,
+          entry_high: 5910000,
+          target1: 6120000,
+          target2: 6350000,
+          stop_loss: 5710000,
+          published_ist: "2026-10-23 09:00",
+          expiry_ist: "2026-10-26 18:00",
+          current_price: 5865000,
+          status: "READY_TO_EXECUTE",
+          checklist: { time_decay_ok: true, in_entry_band: true, candle_15m_green: true, rsi_15m_above_40: true }
+        }
+      ],
+      trade_history: []
+    };
+
+    function formatINR(val) {
+      return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(val);
+    }
+
+    function updateClock() {
+      const d = new Date();
+      document.getElementById('ist-clock').innerText = d.toLocaleTimeString('en-IN', { timeZone: "Asia/Kolkata", hour12: false, hour: "2-digit", minute: "2-digit", second: "2-digit" }) + " IST";
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    function renderSignals() {
+      const container = document.getElementById('signals-container');
+      container.innerHTML = '';
+
+      if (!state.active_signals || state.active_signals.length === 0) {
+        container.innerHTML = `<div class="p-6 bg-card rounded-xl text-center text-slate-400 text-xs">No active signals found.</div>`;
+        return;
+      }
+
+      state.active_signals.forEach(sig => {
+        let badgeColor = "bg-slate-700 text-slate-300";
+        if (sig.status === "READY_TO_EXECUTE") badgeColor = "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";
+        if (sig.status === "WAITING_CONFIRMATION") badgeColor = "bg-amber-500/20 text-amber-400 border border-amber-500/30";
+        if (sig.status === "TIME_EXPIRED") badgeColor = "bg-rose-500/20 text-rose-400 border border-rose-500/30";
+
+        const card = document.createElement('div');
+        card.className = "bg-card p-5 rounded-xl border border-subtle space-y-4";
+        card.innerHTML = `
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <span class="text-base font-black text-white">${sig.pair}</span>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-500/20 text-blue-400">${sig.direction}</span>
+              <span class="text-[10px] font-bold px-2.5 py-0.5 rounded ${badgeColor}">${sig.status ? sig.status.replace(/_/g, ' ') : 'ACTIVE'}</span>
+            </div>
+            <div class="text-right">
+              <span class="text-xs text-slate-400">Live Price:</span>
+              <span class="text-sm font-mono font-bold text-white ml-1">${formatINR(sig.current_price || sig.entry_high)}</span>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-3 gap-2 p-3 bg-card-subtle rounded-lg text-xs font-mono">
+            <div>
+              <span class="text-[10px] text-slate-400 block">ENTRY ZONE</span>
+              <span class="text-white font-semibold">${formatINR(sig.entry_low)} - ${formatINR(sig.entry_high)}</span>
+            </div>
+            <div>
+              <span class="text-[10px] text-emerald-400 block">TARGET 1 / 2</span>
+              <span class="text-emerald-400 font-semibold">${formatINR(sig.target1)} / ${formatINR(sig.target2)}</span>
+            </div>
+            <div>
+              <span class="text-[10px] text-rose-400 block">STOP LOSS</span>
+              <span class="text-rose-400 font-semibold">${formatINR(sig.stop_loss)}</span>
+            </div>
+          </div>
+
+          <div class="text-xs border-t border-subtle/70 pt-3">
+            <div class="text-[11px] font-bold text-slate-300 mb-2">MICRO STRATEGY CHECKLIST:</div>
+            <div class="grid grid-cols-2 gap-2 text-[11px]">
+              <div class="flex items-center gap-1.5 ${sig.checklist?.time_decay_ok ? 'text-emerald-400' : 'text-rose-400'}">
+                <i class="fa-solid ${sig.checklist?.time_decay_ok ? 'fa-check' : 'fa-xmark'}"></i>
+                <span>&lt;50% Expiry Passed</span>
+              </div>
+              <div class="flex items-center gap-1.5 ${sig.checklist?.in_entry_band ? 'text-emerald-400' : 'text-amber-400'}">
+                <i class="fa-solid ${sig.checklist?.in_entry_band ? 'fa-check' : 'fa-xmark'}"></i>
+                <span>Inside Entry Value Zone</span>
+              </div>
+              <div class="flex items-center gap-1.5 ${sig.checklist?.candle_15m_green ? 'text-emerald-400' : 'text-amber-400'}">
+                <i class="fa-solid ${sig.checklist?.candle_15m_green ? 'fa-check' : 'fa-hourglass-start'}"></i>
+                <span>15m Green Candle Close</span>
+              </div>
+              <div class="flex items-center gap-1.5 ${sig.checklist?.rsi_15m_above_40 ? 'text-emerald-400' : 'text-amber-400'}">
+                <i class="fa-solid ${sig.checklist?.rsi_15m_above_40 ? 'fa-check' : 'fa-hourglass-start'}"></i>
+                <span>15m RSI Reclaim (&gt;40)</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between pt-2 border-t border-subtle/50 text-xs">
+            <span class="text-slate-400 text-[11px]">Expires: <strong class="text-slate-300 font-mono">${sig.expiry_ist}</strong></span>
+            <button onclick="loadToCalculator('${sig.pair}', ${sig.current_price || sig.entry_high}, ${sig.stop_loss}, ${sig.target1})" class="px-3 py-1.5 bg-blue-600/30 hover:bg-blue-600/50 text-blue-300 border border-blue-500/30 rounded font-semibold transition-colors">
+              Load to Sizer
+            </button>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function renderHistory() {
+      const container = document.getElementById('history-container');
+      container.innerHTML = '';
+      if (!state.trade_history || state.trade_history.length === 0) {
+        container.innerHTML = `<div class="text-slate-500 text-center py-4 text-xs">No closed trades yet.</div>`;
+        return;
+      }
+      state.trade_history.forEach(item => {
+        const div = document.createElement('div');
+        div.className = "flex justify-between items-center p-2.5 bg-card-subtle rounded border border-subtle";
+        const isWin = item.pnl_inr >= 0;
+        div.innerHTML = `
+          <div>
+            <div class="font-bold text-white">${item.pair} <span class="text-[10px] text-slate-400 font-normal">(${item.result.replace(/_/g, ' ')})</span></div>
+            <div class="text-[10px] text-slate-400 font-mono">${item.exit_time_ist}</div>
+          </div>
+          <div class="text-right">
+            <div class="font-mono font-bold ${isWin ? 'text-emerald-400' : 'text-rose-400'}">${isWin ? '+' : ''}${formatINR(item.pnl_inr)}</div>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function updateLeverageLabel(val) {
+      document.getElementById('leverage-val').innerText = val + 'x';
+    }
+
+    function loadToCalculator(pair, entry, sl, tp1) {
+      document.getElementById('calc-entry').value = entry;
+      document.getElementById('calc-sl').value = sl;
+      calculatePosition(tp1);
+    }
+
+    function calculatePosition(overrideTP) {
+      const wallet = parseFloat(document.getElementById('calc-wallet').value) || 0;
+      const riskPct = parseFloat(document.getElementById('calc-risk').value) || 0.015;
+      const entry = parseFloat(document.getElementById('calc-entry').value) || 0;
+      const sl = parseFloat(document.getElementById('calc-sl').value) || 0;
+      const lev = parseFloat(document.getElementById('calc-leverage').value) || 5;
+
+      const maxLoss = wallet * riskPct;
+      document.getElementById('res-max-loss').innerText = formatINR(maxLoss);
+
+      if (entry > 0 && sl > 0 && entry > sl) {
+        const slDistancePct = (entry - sl) / entry;
+        const posValue = maxLoss / slDistancePct;
+        const margin = posValue / lev;
+
+        document.getElementById('res-pos-val').innerText = formatINR(posValue);
+        document.getElementById('res-margin').innerText = formatINR(margin);
+
+        const tp = overrideTP || (entry * 1.04);
+        const rr = (tp - entry) / (entry - sl);
+        document.getElementById('res-rr').innerText = rr.toFixed(2) + " : 1";
+      }
+    }
+
+    function copyBlueprint() {
+      const entry = document.getElementById('calc-entry').value;
+      const sl = document.getElementById('calc-sl').value;
+      const lev = document.getElementById('calc-leverage').value;
+      const margin = document.getElementById('res-margin').innerText;
+      const posVal = document.getElementById('res-pos-val').innerText;
+
+      const txt = `[COINDCX FUTURES ORDER BLUEPRINT]\nEntry: ₹${entry}\nSL: ₹${sl}\nLeverage: ${lev}x\nRequired Margin: ${margin}\nTotal Position: ${posVal}\nRisk Rule: Exit 50% at TP1 -> Move SL to Breakeven`;
+      navigator.clipboard.writeText(txt);
+
+      const btn = document.getElementById('copy-btn-text');
+      btn.innerText = "Copied to Clipboard!";
+      setTimeout(() => btn.innerText = "Copy Order Blueprint for CoinDCX", 2000);
+    }
+
+    async function refreshData() {
+      const icon = document.getElementById('refresh-icon');
+      icon.classList.add('fa-spin');
+      try {
+        const res = await fetch('signals.json?t=' + Date.now());
+        if (res.ok) {
+          state = await res.json();
+          renderSignals();
+          renderHistory();
+        }
+      } catch (e) {
+        console.log("Using local state");
+      } finally {
+        setTimeout(() => icon.classList.remove('fa-spin'), 600);
+      }
+    }
+
+    // Init
+    renderSignals();
+    renderHistory();
+    calculatePosition();
+    refreshData();
+  </script>
+</body>
+</html>
