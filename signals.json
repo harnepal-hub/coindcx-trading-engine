@@ -1,0 +1,21 @@
+{
+  "last_updated_ist": "2026-10-23 17:30:00 IST",
+  "active_signals": [
+    {
+      "id": "SIG-101",
+      "pair": "BTCINR",
+      "direction": "BUY",
+      "entry_low": 5820000,
+      "entry_high": 5910000,
+      "target1": 6120000,
+      "target2": 6350000,
+      "stop_loss": 5710000,
+      "published_ist": "2026-10-23 09:00",
+      "expiry_ist": "2026-10-26 18:00",
+      "current_price": 5865000,
+      "status": "READY_TO_EXECUTE",
+      "checklist": { "time_decay_ok": true, "in_entry_band": true, "candle_15m_green": true, "rsi_15m_above_40": true }
+    }
+  ],
+  "trade_history": []
+}
