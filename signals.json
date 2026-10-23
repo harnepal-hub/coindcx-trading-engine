@@ -1,21 +1,82 @@
 {
-  "last_updated_ist": "2026-10-23 17:30:00 IST",
+  "last_updated_ist": "2026-10-23 22:00:00 IST",
+  "portfolio": {
+    "initial_capital": 10000.0,
+    "cash_balance": 10000.0,
+    "realized_pnl": 0.0,
+    "open_positions": [],
+    "closed_trades": []
+  },
   "active_signals": [
     {
-      "id": "SIG-101",
-      "pair": "BTCINR",
+      "id": "SOL",
+      "pair": "SOL",
+      "category": "Crypto",
       "direction": "BUY",
-      "entry_low": 5820000,
-      "entry_high": 5910000,
-      "target1": 6120000,
-      "target2": 6350000,
-      "stop_loss": 5710000,
-      "published_ist": "2026-10-23 09:00",
-      "expiry_ist": "2026-10-26 18:00",
-      "current_price": 5865000,
-      "status": "READY_TO_EXECUTE",
-      "checklist": { "time_decay_ok": true, "in_entry_band": true, "candle_15m_green": true, "rsi_15m_above_40": true }
+      "leverage": 15,
+      "entry_low": 103.46,
+      "entry_high": 104.46,
+      "target": 105.60,
+      "stop_loss": 102.71,
+      "published_ist": "2026-10-23 11:14",
+      "expiry_ist": "2026-10-26 23:59",
+      "current_price": 104.54
+    },
+    {
+      "id": "MSFT",
+      "pair": "MSFT",
+      "category": "Global",
+      "direction": "BUY",
+      "leverage": 15,
+      "entry_low": 514.27,
+      "entry_high": 520.00,
+      "target": 526.41,
+      "stop_loss": 510.00,
+      "published_ist": "2026-10-23 19:57",
+      "expiry_ist": "2026-10-29 23:59",
+      "current_price": 524.74
+    },
+    {
+      "id": "META",
+      "pair": "META",
+      "category": "Global",
+      "direction": "BUY",
+      "leverage": 9,
+      "entry_low": 640.50,
+      "entry_high": 650.10,
+      "target": 665.19,
+      "stop_loss": 630.00,
+      "published_ist": "2026-10-22 20:49",
+      "expiry_ist": "2026-10-28 23:59",
+      "current_price": 645.39
+    },
+    {
+      "id": "AAPL",
+      "pair": "AAPL",
+      "category": "Global",
+      "direction": "SELL",
+      "leverage": 13,
+      "entry_low": 345.00,
+      "entry_high": 349.00,
+      "target": 340.50,
+      "stop_loss": 352.00,
+      "published_ist": "2026-10-22 20:06",
+      "expiry_ist": "2026-10-28 23:59",
+      "current_price": 347.68
+    },
+    {
+      "id": "ORCL",
+      "pair": "ORCL",
+      "category": "Global",
+      "direction": "SELL",
+      "leverage": 8,
+      "entry_low": 125.00,
+      "entry_high": 126.90,
+      "target": 121.98,
+      "stop_loss": 129.00,
+      "published_ist": "2026-10-23 10:00",
+      "expiry_ist": "2026-10-28 23:59",
+      "current_price": 126.00
     }
-  ],
-  "trade_history": []
+  ]
 }
