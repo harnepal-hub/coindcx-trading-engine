@@ -28,7 +28,7 @@
       </div>
       <div class="flex items-center gap-2 text-xs text-slate-400 mt-1">
         <span class="inline-block w-2 h-2 rounded-full bg-emerald-400 pulse-dot"></span>
-        <span id="daemon-status" class="text-emerald-400 font-semibold">Cloud Daemon: Active (Runs 24/7 on GitHub Actions)</span>
+        <span id="daemon-status" class="text-emerald-400 font-semibold">Live Feed: Active (5s ticker poll + 15m cloud cron)</span>
       </div>
     </div>
 
@@ -268,9 +268,8 @@
   </div>
 
   <script>
-    // Fallback data seeded directly from your CoinDCX app
     const fallbackData = {
-      last_updated_ist: "2026-10-24 06:47:39 IST",
+      last_updated_ist: "2026-10-24 07:23:54 IST",
       portfolio: {
         initial_capital: 10000.0,
         cash_balance: 7772.90,
@@ -283,8 +282,8 @@
         closed_trades: []
       },
       active_signals: [
-        { id: "SOL", pair: "SOL", category: "Crypto", direction: "BUY", leverage: 15, entry_low: 103.46, entry_high: 104.46, target: 105.60, stop_loss: 102.71, published_ist: "2026-10-23 11:14", expiry_ist: "2026-10-26 23:59", current_price: 102.61, decay_pct: 23.1 },
-        { id: "MSFT", pair: "MSFT", category: "Global", direction: "BUY", leverage: 15, entry_low: 514.27, entry_high: 520.00, target: 526.41, stop_loss: 510.00, published_ist: "2026-10-23 19:57", expiry_ist: "2026-10-29 23:59", current_price: 524.74, decay_pct: 7.3 },
+        { id: "SOL", pair: "SOL", category: "Crypto", direction: "BUY", leverage: 15, entry_low: 103.46, entry_high: 104.46, target: 105.60, stop_loss: 102.71, published_ist: "2026-10-23 11:14", expiry_ist: "2026-10-26 23:59", current_price: 102.65, decay_pct: 23.8 },
+        { id: "MSFT", pair: "MSFT", category: "Global", direction: "BUY", leverage: 15, entry_low: 514.27, entry_high: 520.00, target: 526.41, stop_loss: 510.00, published_ist: "2026-10-23 19:57", expiry_ist: "2026-10-29 23:59", current_price: 524.74, decay_pct: 7.7 },
         { id: "META", pair: "META", category: "Global", direction: "BUY", leverage: 9, entry_low: 640.50, entry_high: 650.10, target: 665.19, stop_loss: 630.00, published_ist: "2026-10-22 20:49", expiry_ist: "2026-10-28 23:59", current_price: 645.39, decay_pct: 23.1 },
         { id: "AAPL", pair: "AAPL", category: "Global", direction: "SELL", leverage: 13, entry_low: 345.00, entry_high: 349.00, target: 340.50, stop_loss: 352.00, published_ist: "2026-10-22 20:06", expiry_ist: "2026-10-28 23:59", current_price: 347.68, decay_pct: 23.5 },
         { id: "ORCL", pair: "ORCL", category: "Global", direction: "SELL", leverage: 8, entry_low: 125.00, entry_high: 126.90, target: 121.98, stop_loss: 129.00, published_ist: "2026-10-23 10:00", expiry_ist: "2026-10-28 23:59", current_price: 126.00, decay_pct: 18.0 }
@@ -304,7 +303,45 @@
       return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(val);
     }
 
-    // SYNC FROM SIGNALS.JSON
+    // DIRECT BROWSER TICKER POLLING (5 SECONDS)
+    async function fetchLiveTicker() {
+      try {
+        const res = await fetch('https://api.coindcx.com/exchange/ticker');
+        if (res.ok) {
+          const tickers = await res.json();
+          const priceMap = {};
+          tickers.forEach(t => priceMap[t.market] = parseFloat(t.last_price));
+
+          let priceChanged = false;
+          appData.active_signals.forEach(sig => {
+            const sym = sig.pair.toUpperCase();
+            for (let c of [sym + 'USDT', sym + 'INR', sym + 'USDC', 'B-' + sym + '_USDT']) {
+              if (priceMap[c] && priceMap[c] !== sig.current_price) {
+                sig.current_price = priceMap[c];
+                priceChanged = true;
+                break;
+              }
+            }
+          });
+
+          // Sync open position price if active
+          if (appData.portfolio && appData.portfolio.open_positions) {
+            appData.portfolio.open_positions.forEach(pos => {
+              const match = appData.active_signals.find(s => s.pair === pos.pair);
+              if (match) pos.current_price = match.current_price;
+            });
+          }
+
+          if (priceChanged) {
+            renderDashboard();
+          }
+        }
+      } catch (err) {
+        // Fallback for network hiccups
+      }
+    }
+
+    // SYNC FROM SIGNALS.JSON (CLOUD RUNS)
     async function syncCloud() {
       const icon = document.getElementById('refresh-icon');
       icon.classList.add('fa-spin');
@@ -319,7 +356,7 @@
       } catch (err) {
         console.log("Using cached state:", err);
       } finally {
-        document.getElementById('last-sync-time').innerText = "Last Cloud Run: " + (appData.last_updated_ist || "06:47:39 IST");
+        document.getElementById('last-sync-time').innerText = "Last Cloud Run: " + (appData.last_updated_ist || "07:23:54 IST");
         renderDashboard();
         setTimeout(() => icon.classList.remove('fa-spin'), 400);
       }
@@ -360,7 +397,7 @@
               <span class="text-slate-400">TP: <strong class="text-emerald-400">${pos.target}</strong></span>
               ${pos.breakeven_set ? '<span class="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 text-[10px] font-bold">BE LOCKED</span>' : ''}
             </div>
-            <div class="text-right">
+            <div class="text-right whitespace-nowrap">
               <span class="font-bold font-mono text-sm ${pnlInr >= 0 ? 'text-emerald-400' : 'text-rose-400'}">${pnlInr >= 0 ? '+' : ''}${formatINR(pnlInr)}</span>
               <span class="text-[10px] text-slate-400 font-mono ml-1">(${pnlInr >= 0 ? '+' : ''}${(pnlPct * 100 * pos.leverage).toFixed(2)}% ROI)</span>
             </div>
@@ -561,11 +598,12 @@
       }
     }
 
-    // Startup
+    // Startup: Render baseline, sync cloud, and start 5s live ticker poll
     renderDashboard();
     calculatePosition(105.60);
     syncCloud();
-    setInterval(syncCloud, 15000);
+    setInterval(fetchLiveTicker, 5000); // 5-second live ticker
+    setInterval(syncCloud, 15000);      // 15-second cloud sync
   </script>
 </body>
-</html>
+</html>lrl
