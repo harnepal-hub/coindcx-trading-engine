@@ -1,0 +1,38 @@
+name: CoinDCX Signals Engine Cron
+
+on:
+  schedule:
+    # Runs every 15 minutes automatically
+    - cron: '*/15 * * * *'
+  workflow_dispatch: # Allows manual run button
+
+jobs:
+  run-engine:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Run Fetch & Evaluation Engine
+        run: |
+          python fetch.py
+
+      - name: Commit and Push Updated Data
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add signals.json
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Auto-update prices & paper trades [skip ci]" && git push)
