@@ -1,10 +1,53 @@
 {
-  "last_updated_ist": "2026-10-23 22:00:00 IST",
+  "last_updated_ist": "2026-10-24 06:47:39 IST",
   "portfolio": {
     "initial_capital": 10000.0,
-    "cash_balance": 10000.0,
+    "cash_balance": 7772.90349039815,
     "realized_pnl": 0.0,
-    "open_positions": [],
+    "open_positions": [
+      {
+        "id": "AUTO-META-1792804659",
+        "pair": "META",
+        "direction": "BUY",
+        "leverage": 9,
+        "entry_price": 645.39,
+        "current_price": 645.39,
+        "stop_loss": 630.0,
+        "target": 665.19,
+        "margin": 698.93,
+        "position_value": 6290.35,
+        "opened_at": "2026-10-24 06:47:39 IST",
+        "breakeven_set": false
+      },
+      {
+        "id": "AUTO-AAPL-1792804659",
+        "pair": "AAPL",
+        "direction": "SELL",
+        "leverage": 13,
+        "entry_price": 347.68,
+        "current_price": 347.68,
+        "stop_loss": 352.0,
+        "target": 340.5,
+        "margin": 863.73,
+        "position_value": 11228.46,
+        "opened_at": "2026-10-24 06:47:39 IST",
+        "breakeven_set": false
+      },
+      {
+        "id": "AUTO-ORCL-1792804659",
+        "pair": "ORCL",
+        "direction": "SELL",
+        "leverage": 8,
+        "entry_price": 126.0,
+        "current_price": 126.0,
+        "stop_loss": 129.0,
+        "target": 121.98,
+        "margin": 664.44,
+        "position_value": 5315.53,
+        "opened_at": "2026-10-24 06:47:39 IST",
+        "breakeven_set": false
+      }
+    ],
     "closed_trades": []
   },
   "active_signals": [
@@ -16,11 +59,12 @@
       "leverage": 15,
       "entry_low": 103.46,
       "entry_high": 104.46,
-      "target": 105.60,
+      "target": 105.6,
       "stop_loss": 102.71,
       "published_ist": "2026-10-23 11:14",
       "expiry_ist": "2026-10-26 23:59",
-      "current_price": 104.54
+      "current_price": 102.61,
+      "decay_pct": 23.1
     },
     {
       "id": "MSFT",
@@ -29,12 +73,13 @@
       "direction": "BUY",
       "leverage": 15,
       "entry_low": 514.27,
-      "entry_high": 520.00,
+      "entry_high": 520.0,
       "target": 526.41,
-      "stop_loss": 510.00,
+      "stop_loss": 510.0,
       "published_ist": "2026-10-23 19:57",
       "expiry_ist": "2026-10-29 23:59",
-      "current_price": 524.74
+      "current_price": 524.74,
+      "decay_pct": 7.3
     },
     {
       "id": "META",
@@ -42,13 +87,14 @@
       "category": "Global",
       "direction": "BUY",
       "leverage": 9,
-      "entry_low": 640.50,
-      "entry_high": 650.10,
+      "entry_low": 640.5,
+      "entry_high": 650.1,
       "target": 665.19,
-      "stop_loss": 630.00,
+      "stop_loss": 630.0,
       "published_ist": "2026-10-22 20:49",
       "expiry_ist": "2026-10-28 23:59",
-      "current_price": 645.39
+      "current_price": 645.39,
+      "decay_pct": 23.1
     },
     {
       "id": "AAPL",
@@ -56,13 +102,14 @@
       "category": "Global",
       "direction": "SELL",
       "leverage": 13,
-      "entry_low": 345.00,
-      "entry_high": 349.00,
-      "target": 340.50,
-      "stop_loss": 352.00,
+      "entry_low": 345.0,
+      "entry_high": 349.0,
+      "target": 340.5,
+      "stop_loss": 352.0,
       "published_ist": "2026-10-22 20:06",
       "expiry_ist": "2026-10-28 23:59",
-      "current_price": 347.68
+      "current_price": 347.68,
+      "decay_pct": 23.5
     },
     {
       "id": "ORCL",
@@ -70,13 +117,14 @@
       "category": "Global",
       "direction": "SELL",
       "leverage": 8,
-      "entry_low": 125.00,
-      "entry_high": 126.90,
+      "entry_low": 125.0,
+      "entry_high": 126.9,
       "target": 121.98,
-      "stop_loss": 129.00,
+      "stop_loss": 129.0,
       "published_ist": "2026-10-23 10:00",
       "expiry_ist": "2026-10-28 23:59",
-      "current_price": 126.00
+      "current_price": 126.0,
+      "decay_pct": 15.5
     }
   ]
 }
