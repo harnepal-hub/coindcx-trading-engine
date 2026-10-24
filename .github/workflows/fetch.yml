@@ -1,6 +1,9 @@
 name: CoinDCX Signals Engine Cron
 
 on:
+  push:
+    branches:
+      - main
   schedule:
     - cron: '*/15 * * * *'
   workflow_dispatch:
@@ -12,26 +15,25 @@ jobs:
       contents: write
 
     steps:
-      - name: Check out repo
+      - name: Checkout repo
         uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          cache: 'pip'
 
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
 
-      - name: Run Fetch & Evaluation Engine
+      - name: Run Fetch and Engine
         run: |
           python fetch.py
 
-      - name: Commit and Push Updated Data
+      - name: Commit and Push
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add signals.json
-          git diff --quiet && git diff --staged --quiet || (git commit -m "Auto-update prices & paper trades [skip ci]" && git push)
+          git diff --staged --quiet || (git commit -m "Auto-update prices & paper trades [skip ci]" && git push)
