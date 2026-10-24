@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CoinDCX Futures Screener & 24/7 Automated Paper Ledger</title>
+  <title>CoinDCX Futures Screener & Dual-Layer Execution Engine</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
@@ -21,14 +21,14 @@
   <header class="flex flex-col md:flex-row md:items-center justify-between pb-5 border-b border-subtle gap-4">
     <div>
       <div class="flex items-center gap-3">
-        <span class="px-2.5 py-1 text-xs font-bold rounded bg-blue-600/20 text-blue-400 border border-blue-500/30">COINDCX FUTURES 24/7 CLOUD</span>
+        <span class="px-2.5 py-1 text-xs font-bold rounded bg-blue-600/20 text-blue-400 border border-blue-500/30">COINDCX DUAL-LAYER ENGINE</span>
         <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-white flex items-center gap-2">
-          Automated Paper Engine &amp; Ledger
+          Paper Trading Cockpit &amp; Auto-Ledger
         </h1>
       </div>
       <div class="flex items-center gap-2 text-xs text-slate-400 mt-1">
         <span class="inline-block w-2 h-2 rounded-full bg-emerald-400 pulse-dot"></span>
-        <span id="daemon-status" class="text-emerald-400 font-semibold">Cloud Daemon: Active (Runs 24/7 on GitHub Actions)</span>
+        <span id="daemon-status" class="text-emerald-400 font-semibold">Dual-Engine Active: 3s Rapid Client Poll + 15m Cloud Daemon</span>
       </div>
     </div>
 
@@ -38,7 +38,7 @@
         <div class="text-[10px] text-slate-400 font-semibold uppercase">Indian Standard Time</div>
         <div id="ist-clock" class="text-xs sm:text-sm font-mono font-bold text-emerald-400">--:--:-- IST</div>
       </div>
-      <button onclick="loadRemoteLedger()" class="p-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-lg shadow-blue-600/20">
+      <button onclick="syncData()" class="p-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-lg shadow-blue-600/20">
         <i class="fa-solid fa-arrows-rotate" id="refresh-icon"></i>
         <span>Sync Cloud</span>
       </button>
@@ -62,34 +62,34 @@
     <div class="bg-card p-3.5 rounded-xl border border-subtle">
       <div class="text-[11px] text-slate-400 uppercase font-semibold">Unrealized Live PnL</div>
       <div id="port-unrealized-pnl" class="text-xl sm:text-2xl font-black text-slate-300 mt-1">₹0.00</div>
-      <div id="port-open-count" class="text-[10px] text-slate-400 mt-0.5">0 Open Cloud Positions</div>
+      <div id="port-open-count" class="text-[10px] text-slate-400 mt-0.5">0 Active Positions</div>
     </div>
 
     <div class="bg-card p-3.5 rounded-xl border border-subtle">
       <div class="text-[11px] text-slate-400 uppercase font-semibold">Realized Net Profit</div>
       <div id="port-realized-pnl" class="text-xl sm:text-2xl font-black text-slate-300 mt-1">₹0.00</div>
-      <div id="port-trades-count" class="text-[10px] text-purple-300 mt-0.5">0 Total Trades Closed</div>
+      <div id="port-trades-count" class="text-[10px] text-purple-300 mt-0.5">0 Closed Trades</div>
     </div>
   </section>
 
-  <!-- ACTIVE CLOUD POSITIONS -->
+  <!-- ACTIVE POSITIONS -->
   <section class="bg-card p-4 sm:p-5 rounded-xl border border-subtle mb-6 space-y-3">
     <div class="flex items-center justify-between pb-2 border-b border-subtle">
       <h3 class="text-xs sm:text-sm font-bold text-white flex items-center gap-2">
-        <i class="fa-solid fa-server text-emerald-400"></i> Active 24/7 Cloud Positions (<span id="open-positions-num">0</span>)
+        <i class="fa-solid fa-bolt text-emerald-400"></i> Active Positions (Checked Every 3s) (<span id="open-positions-num">0</span>)
       </h3>
-      <span class="text-[11px] text-slate-400">Auto-monitored by GitHub Cron</span>
+      <span class="text-[11px] text-slate-400">Rapid SL / TP triggers enabled</span>
     </div>
     <div id="open-positions-list" class="space-y-2"></div>
   </section>
 
-  <!-- COMPLETE EXECUTED TRADES LEDGER -->
+  <!-- AUDITED TRADE LEDGER -->
   <section class="bg-card p-4 sm:p-5 rounded-xl border border-subtle mb-6 space-y-4">
     <div class="flex items-center justify-between pb-2 border-b border-subtle">
       <h3 class="text-xs sm:text-sm font-bold text-white flex items-center gap-2">
-        <i class="fa-solid fa-table-list text-purple-400"></i> Audited Cloud Trade Ledger
+        <i class="fa-solid fa-table-list text-purple-400"></i> Executed Cloud &amp; Client Trade Ledger
       </h3>
-      <span class="text-[11px] text-slate-400">Written to signals.json</span>
+      <span class="text-[11px] text-slate-400">Real-time audited log</span>
     </div>
 
     <div class="overflow-x-auto">
@@ -103,198 +103,23 @@
             <th class="p-2.5">Net PnL (₹)</th>
             <th class="p-2.5">ROI %</th>
             <th class="p-2.5">Outcome</th>
-            <th class="p-2.5">Closed At (IST)</th>
+            <th class="p-2.5">Execution Time (IST)</th>
           </tr>
         </thead>
         <tbody id="ledger-table-body" class="divide-y divide-subtle/50 text-slate-300">
           <tr>
-            <td colspan="8" class="p-4 text-center text-slate-500 font-sans">No closed trades yet. Automated trades will appear here as soon as TP or SL is triggered.</td>
+            <td colspan="8" class="p-4 text-center text-slate-500 font-sans">No closed trades yet. Automated trades will appear here as soon as TP or SL triggers.</td>
           </tr>
         </tbody>
       </table>
     </div>
   </section>
 
-  <!-- ACTIVE SIGNALS MONITOR WITH EXPIRY METERS -->
+  <!-- ACTIVE SIGNALS MONITOR -->
   <section class="space-y-3">
     <div class="flex items-center justify-between">
       <h2 class="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
         <i class="fa-solid fa-satellite-dish text-blue-400"></i> Active Pick Targets &amp; Expiry Windows
       </h2>
-      <span id="last-sync-time" class="text-[11px] text-slate-400 font-mono">Synced</span>
-    </div>
-    <div id="signals-grid" class="space-y-3.5"></div>
-  </section>
-
-  <script>
-    function updateClock() {
-      const d = new Date();
-      document.getElementById('ist-clock').innerText = d.toLocaleTimeString('en-IN', { timeZone: "Asia/Kolkata", hour12: false, hour: "2-digit", minute: "2-digit", second: "2-digit" }) + " IST";
-    }
-    setInterval(updateClock, 1000);
-    updateClock();
-
-    function formatINR(val) {
-      return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(val);
-    }
-
-    async function loadRemoteLedger() {
-      const icon = document.getElementById('refresh-icon');
-      icon.classList.add('fa-spin');
-      try {
-        const res = await fetch('signals.json?t=' + Date.now());
-        if (res.ok) {
-          const data = await res.json();
-          renderDashboard(data);
-          document.getElementById('last-sync-time').innerText = "Last Cloud Run: " + (data.last_updated_ist || "Just now");
-        }
-      } catch (err) {
-        console.log("Sync error:", err);
-      } finally {
-        setTimeout(() => icon.classList.remove('fa-spin'), 400);
-      }
-    }
-
-    function renderDashboard(data) {
-      const port = data.portfolio || { initial_capital: 10000, cash_balance: 10000, realized_pnl: 0, open_positions: [], closed_trades: [] };
-      const signals = data.active_signals || [];
-
-      // 1. Open Positions
-      let unrealized = 0;
-      let totalMarginLocked = 0;
-
-      const openPositionsContainer = document.getElementById('open-positions-list');
-      openPositionsContainer.innerHTML = '';
-      document.getElementById('open-positions-num').innerText = (port.open_positions || []).length;
-      document.getElementById('port-open-count').innerText = `${(port.open_positions || []).length} Open Cloud Positions`;
-
-      if (!port.open_positions || port.open_positions.length === 0) {
-        openPositionsContainer.innerHTML = `<div class="p-3 bg-card-subtle rounded text-center text-slate-500 text-xs">No active positions open right now. Positions will open automatically when prices touch the entry band.</div>`;
-      } else {
-        port.open_positions.forEach(pos => {
-          const isLong = pos.direction === 'BUY';
-          const pnlPct = isLong ? (pos.current_price - pos.entry_price) / pos.entry_price : (pos.entry_price - pos.current_price) / pos.entry_price;
-          const pnlInr = pos.position_value * pnlPct;
-          unrealized += pnlInr;
-          totalMarginLocked += pos.margin;
-
-          const row = document.createElement('div');
-          row.className = "flex flex-col sm:flex-row justify-between items-start sm:items-center p-3 bg-card-subtle rounded border border-subtle text-xs gap-2";
-          row.innerHTML = `
-            <div class="flex flex-wrap items-center gap-3">
-              <span class="font-bold text-white text-sm">${pos.pair}</span>
-              <span class="px-2 py-0.5 rounded text-[10px] font-bold ${isLong ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}">${pos.direction} ${pos.leverage}x</span>
-              <span class="text-slate-400">Entry: <strong class="text-white">${pos.entry_price}</strong></span>
-              <span class="text-slate-400">LTP: <strong class="text-emerald-400">${pos.current_price}</strong></span>
-              <span class="text-slate-400">SL: <strong class="text-rose-400">${pos.stop_loss}</strong></span>
-              <span class="text-slate-400">TP: <strong class="text-emerald-400">${pos.target}</strong></span>
-              ${pos.breakeven_set ? '<span class="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 text-[10px] font-bold">BE LOCKED</span>' : ''}
-            </div>
-            <div class="text-right">
-              <span class="font-bold font-mono text-sm ${pnlInr >= 0 ? 'text-emerald-400' : 'text-rose-400'}">${pnlInr >= 0 ? '+' : ''}${formatINR(pnlInr)}</span>
-              <span class="text-[10px] text-slate-400 font-mono ml-1">(${pnlInr >= 0 ? '+' : ''}${(pnlPct * 100 * pos.leverage).toFixed(2)}% ROI)</span>
-            </div>
-          `;
-          openPositionsContainer.appendChild(row);
-        });
-      }
-
-      // 2. Metrics Bar
-      const totalVal = port.cash_balance + totalMarginLocked + unrealized;
-      document.getElementById('port-total-val').innerText = formatINR(totalVal);
-      document.getElementById('port-cash').innerText = formatINR(port.cash_balance);
-
-      const unElem = document.getElementById('port-unrealized-pnl');
-      unElem.innerText = (unrealized >= 0 ? "+" : "") + formatINR(unrealized);
-      unElem.className = `text-xl sm:text-2xl font-black mt-1 ${unrealized >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
-
-      const realElem = document.getElementById('port-realized-pnl');
-      realElem.innerText = (port.realized_pnl >= 0 ? "+" : "") + formatINR(port.realized_pnl);
-      realElem.className = `text-xl sm:text-2xl font-black mt-1 ${port.realized_pnl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
-
-      document.getElementById('port-trades-count').innerText = `${(port.closed_trades || []).length} Total Trades Closed`;
-
-      // 3. Render Completed Trades Table
-      const ledgerBody = document.getElementById('ledger-table-body');
-      ledgerBody.innerHTML = '';
-      if (!port.closed_trades || port.closed_trades.length === 0) {
-        ledgerBody.innerHTML = `<tr><td colspan="8" class="p-4 text-center text-slate-500 font-sans">No closed trades yet. Automated trades will appear here as soon as TP or SL is triggered.</td></tr>`;
-      } else {
-        port.closed_trades.forEach(t => {
-          const isWin = t.pnl_inr >= 0;
-          const tr = document.createElement('tr');
-          tr.className = "hover:bg-slate-800/40 transition-colors";
-          tr.innerHTML = `
-            <td class="p-2.5 font-bold text-white">${t.pair}</td>
-            <td class="p-2.5"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${t.direction === 'BUY' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}">${t.direction} ${t.leverage}x</span></td>
-            <td class="p-2.5">${t.entry_price} &rarr; <span class="text-white font-bold">${t.exit_price}</span></td>
-            <td class="p-2.5">${formatINR(t.margin_inr)} <span class="text-slate-500">(${formatINR(t.position_value)})</span></td>
-            <td class="p-2.5 font-bold ${isWin ? 'text-emerald-400' : 'text-rose-400'}">${isWin ? '+' : ''}${formatINR(t.pnl_inr)}</td>
-            <td class="p-2.5 font-bold ${isWin ? 'text-emerald-400' : 'text-rose-400'}">${isWin ? '+' : ''}${t.roi_pct}%</td>
-            <td class="p-2.5"><span class="px-2 py-0.5 rounded text-[10px] ${isWin ? 'bg-emerald-900/40 text-emerald-300' : 'bg-rose-900/40 text-rose-300'}">${t.result.replace(/_/g, ' ')}</span></td>
-            <td class="p-2.5 text-slate-400 text-[10px]">${t.closed_at}</td>
-          `;
-          ledgerBody.appendChild(tr);
-        });
-      }
-
-      // 4. Render Active Signals with Expiry Dates & Decay Bars
-      const grid = document.getElementById('signals-grid');
-      grid.innerHTML = '';
-      signals.forEach(sig => {
-        const isLong = sig.direction === 'BUY';
-        const inBand = sig.current_price >= sig.entry_low && sig.current_price <= sig.entry_high;
-        const isChasing = isLong ? sig.current_price > sig.entry_high : sig.current_price < sig.entry_low;
-
-        let status = inBand ? "IN ENTRY ZONE (AUTO-READY)" : (isChasing ? "CHASE ALERT" : "BREAKDOWN RISK");
-        let statusBadge = inBand ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30" : (isChasing ? "bg-amber-500/20 text-amber-400 border border-amber-500/30" : "bg-rose-500/20 text-rose-400 border border-rose-500/30");
-
-        // Time Decay Math
-        let decayPct = sig.decay_pct || 25;
-        let decayColor = decayPct > 70 ? "bg-rose-500" : (decayPct > 50 ? "bg-amber-500" : "bg-emerald-500");
-
-        const card = document.createElement('div');
-        card.className = "bg-card p-4 sm:p-5 rounded-xl border border-subtle space-y-3";
-        card.innerHTML = `
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-2.5">
-              <span class="font-black text-white text-base">${sig.pair}</span>
-              <span class="px-2 py-0.5 rounded text-[10px] font-bold ${isLong ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}">
-                ${isLong ? 'LONG' : 'SHORT'} ${sig.leverage || 10}x
-              </span>
-              <span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">${sig.category}</span>
-              <span class="px-2 py-0.5 rounded text-[10px] font-bold ${statusBadge}">${status}</span>
-            </div>
-            <div class="text-right">
-              <span class="text-[10px] text-slate-400 block">LTP</span>
-              <span class="text-base font-mono font-black ${isChasing ? 'text-amber-400' : 'text-emerald-400'}">${sig.current_price}</span>
-            </div>
-          </div>
-
-          <div class="grid grid-cols-3 gap-2 p-2.5 bg-card-subtle rounded-lg text-xs font-mono">
-            <div><span class="text-[9px] text-slate-400 block">ENTRY RANGE</span><span class="text-white">${sig.entry_low} - ${sig.entry_high}</span></div>
-            <div><span class="text-[9px] text-emerald-400 block">TARGET</span><span class="text-emerald-400 font-bold">${sig.target}</span></div>
-            <div><span class="text-[9px] text-rose-400 block">STOP LOSS</span><span class="text-rose-400 font-bold">${sig.stop_loss}</span></div>
-          </div>
-
-          <!-- TIME TO EXPIRY & PROGRESS METER -->
-          <div class="pt-2 border-t border-subtle/60 space-y-1.5">
-            <div class="flex justify-between items-center text-[11px]">
-              <span class="text-slate-400"><i class="fa-regular fa-clock mr-1"></i>Valid Till: <strong class="text-white font-mono">${sig.expiry_ist}</strong></span>
-              <span class="text-[10px] font-mono font-bold ${decayPct > 50 ? 'text-amber-400' : 'text-emerald-400'}">${decayPct}% Window Elapsed</span>
-            </div>
-            <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
-              <div class="${decayColor} h-full transition-all duration-500" style="width: ${decayPct}%"></div>
-            </div>
-          </div>
-        `;
-        grid.appendChild(card);
-      });
-    }
-
-    // Auto-refresh every 10 seconds
-    setInterval(loadRemoteLedger, 10000);
-    loadRemoteLedger();
-  </script>
-</body>
-</html>
+      <span id="last-sync-time" class="text-[11px] text-slate-400 font-mono">Syncing...</span>
+    
