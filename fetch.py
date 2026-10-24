@@ -6,7 +6,6 @@ import pytz
 
 IST = pytz.timezone('Asia/Kolkata')
 SIGNALS_FILE = 'signals.json'
-COINDCX_TICKER_URL = 'https://api.coindcx.com/exchange/ticker'
 
 def load_data():
     if not os.path.exists(SIGNALS_FILE):
@@ -18,15 +17,37 @@ def save_data(data):
     with open(SIGNALS_FILE, 'w', encoding='utf-8') as f:
         json.dump(data, f, indent=2)
 
-def fetch_coindcx_prices():
+def fetch_all_live_prices(signals):
+    price_map = {}
+    
+    # 1. Fetch CoinDCX Crypto Prices
     try:
-        res = requests.get(COINDCX_TICKER_URL, timeout=10)
-        if res.status_code == 200:
-            raw = res.json()
-            return {item.get('market', ''): float(item.get('last_price', 0)) for item in raw if 'market' in item}
+        r = requests.get('https://api.coindcx.com/exchange/ticker', timeout=8)
+        if r.status_code == 200:
+            for item in r.json():
+                m = item.get('market', '')
+                price_map[m] = float(item.get('last_price', 0))
     except Exception as e:
-        print(f"Error fetching ticker: {e}")
-    return {}
+        print(f"CoinDCX crypto fetch error: {e}")
+
+    # 2. Fetch Global Equities (MSFT, AAPL, META, ORCL) via Yahoo Finance Public API
+    stock_syms = [s['pair'].upper() for s in signals if s.get('category') == 'Global']
+    if stock_syms:
+        try:
+            url = f"https://query1.finance.yahoo.com/v7/finance/quote?symbols={','.join(stock_syms)}"
+            headers = {'User-Agent': 'Mozilla/5.0'}
+            res = requests.get(url, headers=headers, timeout=8)
+            if res.status_code == 200:
+                results = res.json().get('quoteResponse', {}).get('result', [])
+                for item in results:
+                    sym = item.get('symbol')
+                    price = item.get('regularMarketPrice') or item.get('postMarketPrice') or item.get('preMarketPrice')
+                    if sym and price:
+                        price_map[sym] = float(price)
+        except Exception as e:
+            print(f"Global stocks fetch error: {e}")
+
+    return price_map
 
 def calculate_time_decay(pub_str, exp_str, now_ist):
     try:
@@ -52,28 +73,34 @@ def main():
         "closed_trades": []
     })
 
-    prices = fetch_coindcx_prices()
-    print(f"[{now_str}] Running 24/7 Cloud Automated Execution Engine...")
+    signals = data.get('active_signals', [])
+    prices = fetch_all_live_prices(signals)
+    print(f"[{now_str}] Polled Market Prices: {prices}")
 
-    # 1. Update live prices for signals
-    for sig in data.get('active_signals', []):
+    # 1. Update prices on all signals
+    for sig in signals:
         sym = sig['pair'].upper()
-        candidates = [sym + 'USDT', sym + 'INR', sym + 'USDC', 'B-' + sym + '_USDT']
-        for c in candidates:
-            if c in prices and prices[c] > 0:
-                sig['current_price'] = prices[c]
-                break
+        # Direct stock match or crypto match
+        if sym in prices and prices[sym] > 0:
+            sig['current_price'] = prices[sym]
+        else:
+            for c in [sym + 'USDT', sym + 'INR', sym + 'USDC', 'B-' + sym + '_USDT']:
+                if c in prices and prices[c] > 0:
+                    sig['current_price'] = prices[c]
+                    break
 
-    # 2. Check & Update Active Open Positions (SL, TP, and Time-Stop)
+    # 2. Check & Update Existing Positions (SL / TP / Breakeven)
     remaining_open = []
     for pos in port.get('open_positions', []):
         sym = pos['pair'].upper()
-        # Find current price
         cur_price = pos['current_price']
-        for c in [sym + 'USDT', sym + 'INR', sym + 'USDC', 'B-' + sym + '_USDT']:
-            if c in prices and prices[c] > 0:
-                cur_price = prices[c]
-                break
+        if sym in prices and prices[sym] > 0:
+            cur_price = prices[sym]
+        else:
+            for c in [sym + 'USDT', sym + 'INR']:
+                if c in prices and prices[c] > 0:
+                    cur_price = prices[c]
+                    break
         pos['current_price'] = cur_price
 
         is_long = (pos['direction'] == 'BUY')
@@ -83,20 +110,19 @@ def main():
         closed = False
         reason = ""
 
-        # Check Stop-Loss
+        # Trigger Stop Loss
         if (is_long and cur_price <= pos['stop_loss']) or (not is_long and cur_price >= pos['stop_loss']):
             closed = True
             reason = "BREAKEVEN_STOP" if pos.get('breakeven_set') else "STOP_LOSS_HIT"
-        # Check Take-Profit
+        # Trigger Take Profit
         elif (is_long and cur_price >= pos['target']) or (not is_long and cur_price <= pos['target']):
             closed = True
             reason = "TAKE_PROFIT_HIT"
 
-        # Check Breakeven Auto-Migration (if gain > 1.5% and not already set)
+        # Auto-Breakeven lock if profit > 1.5%
         if not closed and not pos.get('breakeven_set') and pnl_pct > 0.015:
             pos['stop_loss'] = pos['entry_price']
             pos['breakeven_set'] = True
-            print(f"Breakeven locked for {pos['pair']} at {pos['entry_price']}")
 
         if closed:
             port['cash_balance'] += (pos['margin'] + pnl_inr)
@@ -116,37 +142,35 @@ def main():
                 "opened_at": pos['opened_at'],
                 "closed_at": now_str
             })
-            print(f"Closed trade {pos['pair']}: {reason} | PnL: ₹{pnl_inr:.2f}")
+            print(f"CLOSED: {pos['pair']} via {reason} with PnL: ₹{pnl_inr:.2f}")
         else:
             remaining_open.append(pos)
 
     port['open_positions'] = remaining_open
 
-    # 3. Check for NEW Automated Entries (Only if cash is available and position not already open)
+    # 3. Automatic Entries (Checks Entry Range & 50% Time Decay)
     open_pairs = {p['pair'] for p in port['open_positions']}
 
-    for sig in data.get('active_signals', []):
+    for sig in signals:
         pair = sig['pair']
         if pair in open_pairs:
-            continue  # Don't duplicate open positions
+            continue
 
         price = sig['current_price']
         in_band = (sig['entry_low'] <= price <= sig['entry_high'])
-        _, is_decay_invalid, _ = calculate_time_decay(sig['published_ist'], sig['expiry_ist'], now_ist)
+        decay_pct, is_decay_invalid, _ = calculate_time_decay(sig['published_ist'], sig['expiry_ist'], now_ist)
+        sig['decay_pct'] = decay_pct
 
-        # Execution Condition: Must be inside entry band and not expired past 50%
-        if in_band and not is_decay_invalid:
-            # Position Sizing: Risk 1.5% of cash balance
-            risk_pct = 0.015
-            max_loss = port['cash_balance'] * risk_pct
+        # Execute only if price is in band AND less than 50% of expiry time has passed
+        if in_band and not is_decay_invalid and port['cash_balance'] > 500:
+            max_loss = port['cash_balance'] * 0.015 # 1.5% fixed risk
             sl_dist = abs(price - sig['stop_loss'])
             
-            if sl_dist > 0 and port['cash_balance'] > 500:
-                sl_pct = sl_dist / price
-                pos_val = max_loss / sl_pct
+            if sl_dist > 0:
+                pos_val = max_loss / (sl_dist / price)
                 margin_req = pos_val / (sig.get('leverage') or 10)
 
-                # Ensure margin doesn't exceed 30% of available cash
+                # Cap single trade margin to 35% of cash
                 if margin_req <= port['cash_balance'] * 0.35:
                     port['cash_balance'] -= margin_req
                     port['open_positions'].append({
@@ -164,11 +188,10 @@ def main():
                         "breakeven_set": False
                     })
                     open_pairs.add(pair)
-                    print(f"AUTOMATED ORDER EXECUTED: {pair} {sig['direction']} at {price} | Margin: ₹{margin_req:.2f}")
+                    print(f"AUTO-ENTRY EXECUTED: {pair} at {price} (Margin: ₹{margin_req:.2f})")
 
     data['last_updated_ist'] = now_str
     save_data(data)
-    print(f"Cycle completed. Cash: ₹{port['cash_balance']:.2f} | Open: {len(port['open_positions'])} | Closed: {len(port['closed_trades'])}")
 
 if __name__ == '__main__':
     main()
