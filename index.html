@@ -78,11 +78,9 @@
       <h3 class="text-xs sm:text-sm font-bold text-white flex items-center gap-2">
         <i class="fa-solid fa-server text-emerald-400"></i> Active 24/7 Cloud Positions (<span id="open-positions-num">0</span>)
       </h3>
-      <span class="text-[11px] text-slate-400">Maintained by GitHub Actions cron</span>
+      <span class="text-[11px] text-slate-400">Auto-monitored by GitHub Cron</span>
     </div>
-    <div id="open-positions-list" class="space-y-2">
-      <!-- Injected by JS -->
-    </div>
+    <div id="open-positions-list" class="space-y-2"></div>
   </section>
 
   <!-- COMPLETE EXECUTED TRADES LEDGER -->
@@ -91,7 +89,7 @@
       <h3 class="text-xs sm:text-sm font-bold text-white flex items-center gap-2">
         <i class="fa-solid fa-table-list text-purple-400"></i> Audited Cloud Trade Ledger
       </h3>
-      <span class="text-[11px] text-slate-400">All data stored in signals.json</span>
+      <span class="text-[11px] text-slate-400">Written to signals.json</span>
     </div>
 
     <div class="overflow-x-auto">
@@ -105,29 +103,27 @@
             <th class="p-2.5">Net PnL (₹)</th>
             <th class="p-2.5">ROI %</th>
             <th class="p-2.5">Outcome</th>
-            <th class="p-2.5">Execution Time (IST)</th>
+            <th class="p-2.5">Closed At (IST)</th>
           </tr>
         </thead>
         <tbody id="ledger-table-body" class="divide-y divide-subtle/50 text-slate-300">
           <tr>
-            <td colspan="8" class="p-4 text-center text-slate-500 font-sans">No trades executed yet. The engine will automatically enter trades when signals enter the entry zone.</td>
+            <td colspan="8" class="p-4 text-center text-slate-500 font-sans">No closed trades yet. Automated trades will appear here as soon as TP or SL is triggered.</td>
           </tr>
         </tbody>
       </table>
     </div>
   </section>
 
-  <!-- ACTIVE SIGNALS MONITOR -->
+  <!-- ACTIVE SIGNALS MONITOR WITH EXPIRY METERS -->
   <section class="space-y-3">
     <div class="flex items-center justify-between">
       <h2 class="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
-        <i class="fa-solid fa-satellite-dish text-blue-400"></i> Active Pick Targets Monitored 24/7
+        <i class="fa-solid fa-satellite-dish text-blue-400"></i> Active Pick Targets &amp; Expiry Windows
       </h2>
       <span id="last-sync-time" class="text-[11px] text-slate-400 font-mono">Synced</span>
     </div>
-    <div id="signals-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      <!-- Injected by JS -->
-    </div>
+    <div id="signals-grid" class="space-y-3.5"></div>
   </section>
 
   <script>
@@ -153,7 +149,7 @@
           document.getElementById('last-sync-time').innerText = "Last Cloud Run: " + (data.last_updated_ist || "Just now");
         }
       } catch (err) {
-        console.log("Error loading signals.json", err);
+        console.log("Sync error:", err);
       } finally {
         setTimeout(() => icon.classList.remove('fa-spin'), 400);
       }
@@ -163,7 +159,7 @@
       const port = data.portfolio || { initial_capital: 10000, cash_balance: 10000, realized_pnl: 0, open_positions: [], closed_trades: [] };
       const signals = data.active_signals || [];
 
-      // 1. Calculate live unrealized PnL from open positions
+      // 1. Open Positions
       let unrealized = 0;
       let totalMarginLocked = 0;
 
@@ -173,7 +169,7 @@
       document.getElementById('port-open-count').innerText = `${(port.open_positions || []).length} Open Cloud Positions`;
 
       if (!port.open_positions || port.open_positions.length === 0) {
-        openPositionsContainer.innerHTML = `<div class="p-3 bg-card-subtle rounded text-center text-slate-500 text-xs">No active positions open right now. GitHub Actions checks the entry range every 15 minutes.</div>`;
+        openPositionsContainer.innerHTML = `<div class="p-3 bg-card-subtle rounded text-center text-slate-500 text-xs">No active positions open right now. Positions will open automatically when prices touch the entry band.</div>`;
       } else {
         port.open_positions.forEach(pos => {
           const isLong = pos.direction === 'BUY';
@@ -185,7 +181,7 @@
           const row = document.createElement('div');
           row.className = "flex flex-col sm:flex-row justify-between items-start sm:items-center p-3 bg-card-subtle rounded border border-subtle text-xs gap-2";
           row.innerHTML = `
-            <div class="flex items-center gap-3">
+            <div class="flex flex-wrap items-center gap-3">
               <span class="font-bold text-white text-sm">${pos.pair}</span>
               <span class="px-2 py-0.5 rounded text-[10px] font-bold ${isLong ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}">${pos.direction} ${pos.leverage}x</span>
               <span class="text-slate-400">Entry: <strong class="text-white">${pos.entry_price}</strong></span>
@@ -218,12 +214,11 @@
 
       document.getElementById('port-trades-count').innerText = `${(port.closed_trades || []).length} Total Trades Closed`;
 
-      // 3. Render Completed Trades Ledger Table
+      // 3. Render Completed Trades Table
       const ledgerBody = document.getElementById('ledger-table-body');
       ledgerBody.innerHTML = '';
-
       if (!port.closed_trades || port.closed_trades.length === 0) {
-        ledgerBody.innerHTML = `<tr><td colspan="8" class="p-4 text-center text-slate-500 font-sans">No trades completed yet. When an automated trade hits SL or TP, the cloud engine writes the full record here.</td></tr>`;
+        ledgerBody.innerHTML = `<tr><td colspan="8" class="p-4 text-center text-slate-500 font-sans">No closed trades yet. Automated trades will appear here as soon as TP or SL is triggered.</td></tr>`;
       } else {
         port.closed_trades.forEach(t => {
           const isWin = t.pnl_inr >= 0;
@@ -243,7 +238,7 @@
         });
       }
 
-      // 4. Render Active Monitored Signals Grid
+      // 4. Render Active Signals with Expiry Dates & Decay Bars
       const grid = document.getElementById('signals-grid');
       grid.innerHTML = '';
       signals.forEach(sig => {
@@ -251,32 +246,54 @@
         const inBand = sig.current_price >= sig.entry_low && sig.current_price <= sig.entry_high;
         const isChasing = isLong ? sig.current_price > sig.entry_high : sig.current_price < sig.entry_low;
 
-        let status = inBand ? "IN ENTRY ZONE (AUTO-READY)" : (isChasing ? "CHASE ALERT" : "OUT OF RANGE");
-        let statusBadge = inBand ? "bg-emerald-500/20 text-emerald-400" : (isChasing ? "bg-amber-500/20 text-amber-400" : "bg-slate-700 text-slate-400");
+        let status = inBand ? "IN ENTRY ZONE (AUTO-READY)" : (isChasing ? "CHASE ALERT" : "BREAKDOWN RISK");
+        let statusBadge = inBand ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30" : (isChasing ? "bg-amber-500/20 text-amber-400 border border-amber-500/30" : "bg-rose-500/20 text-rose-400 border border-rose-500/30");
+
+        // Time Decay Math
+        let decayPct = sig.decay_pct || 25;
+        let decayColor = decayPct > 70 ? "bg-rose-500" : (decayPct > 50 ? "bg-amber-500" : "bg-emerald-500");
 
         const card = document.createElement('div');
-        card.className = "bg-card p-4 rounded-xl border border-subtle space-y-2 text-xs";
+        card.className = "bg-card p-4 sm:p-5 rounded-xl border border-subtle space-y-3";
         card.innerHTML = `
-          <div class="flex justify-between items-center">
-            <span class="font-black text-white text-sm">${sig.pair} <span class="text-[10px] text-slate-400 font-normal">(${sig.category})</span></span>
-            <span class="px-2 py-0.5 rounded text-[10px] font-bold ${statusBadge}">${status}</span>
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+              <span class="font-black text-white text-base">${sig.pair}</span>
+              <span class="px-2 py-0.5 rounded text-[10px] font-bold ${isLong ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}">
+                ${isLong ? 'LONG' : 'SHORT'} ${sig.leverage || 10}x
+              </span>
+              <span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">${sig.category}</span>
+              <span class="px-2 py-0.5 rounded text-[10px] font-bold ${statusBadge}">${status}</span>
+            </div>
+            <div class="text-right">
+              <span class="text-[10px] text-slate-400 block">LTP</span>
+              <span class="text-base font-mono font-black ${isChasing ? 'text-amber-400' : 'text-emerald-400'}">${sig.current_price}</span>
+            </div>
           </div>
-          <div class="flex justify-between text-slate-400 text-[11px]">
-            <span>LTP: <strong class="text-white">${sig.current_price}</strong></span>
-            <span>Range: <strong class="text-slate-300">${sig.entry_low} - ${sig.entry_high}</strong></span>
+
+          <div class="grid grid-cols-3 gap-2 p-2.5 bg-card-subtle rounded-lg text-xs font-mono">
+            <div><span class="text-[9px] text-slate-400 block">ENTRY RANGE</span><span class="text-white">${sig.entry_low} - ${sig.entry_high}</span></div>
+            <div><span class="text-[9px] text-emerald-400 block">TARGET</span><span class="text-emerald-400 font-bold">${sig.target}</span></div>
+            <div><span class="text-[9px] text-rose-400 block">STOP LOSS</span><span class="text-rose-400 font-bold">${sig.stop_loss}</span></div>
           </div>
-          <div class="flex justify-between text-slate-400 text-[11px] border-t border-subtle/60 pt-1.5">
-            <span>SL: <strong class="text-rose-400">${sig.stop_loss}</strong></span>
-            <span>Target: <strong class="text-emerald-400">${sig.target}</strong></span>
-            <span>Leverage: <strong class="text-blue-400">${sig.leverage || 10}x</strong></span>
+
+          <!-- TIME TO EXPIRY & PROGRESS METER -->
+          <div class="pt-2 border-t border-subtle/60 space-y-1.5">
+            <div class="flex justify-between items-center text-[11px]">
+              <span class="text-slate-400"><i class="fa-regular fa-clock mr-1"></i>Valid Till: <strong class="text-white font-mono">${sig.expiry_ist}</strong></span>
+              <span class="text-[10px] font-mono font-bold ${decayPct > 50 ? 'text-amber-400' : 'text-emerald-400'}">${decayPct}% Window Elapsed</span>
+            </div>
+            <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+              <div class="${decayColor} h-full transition-all duration-500" style="width: ${decayPct}%"></div>
+            </div>
           </div>
         `;
         grid.appendChild(card);
       });
     }
 
-    // Auto-refresh from signals.json every 15 seconds
-    setInterval(loadRemoteLedger, 15000);
+    // Auto-refresh every 10 seconds
+    setInterval(loadRemoteLedger, 10000);
     loadRemoteLedger();
   </script>
 </body>
