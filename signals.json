@@ -1,5 +1,5 @@
 {
-  "last_updated_ist": "2026-10-25 16:32:40 IST",
+  "last_updated_ist": "2026-10-25 20:27:56 IST",
   "portfolio": {
     "initial_capital": 10000.0,
     "cash_balance": 7772.90349039815,
@@ -63,8 +63,8 @@
       "stop_loss": 102.71,
       "published_ist": "2026-10-23 11:14",
       "expiry_ist": "2026-10-26 23:59",
-      "current_price": 100.93,
-      "decay_pct": 62.9
+      "current_price": 101.34,
+      "decay_pct": 67.5
     },
     {
       "id": "MSFT",
@@ -79,7 +79,7 @@
       "published_ist": "2026-10-23 19:57",
       "expiry_ist": "2026-10-29 23:59",
       "current_price": 524.74,
-      "decay_pct": 30.1
+      "decay_pct": 32.8
     },
     {
       "id": "META",
