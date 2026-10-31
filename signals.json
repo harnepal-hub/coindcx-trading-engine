@@ -1,5 +1,5 @@
 {
-  "last_updated_ist": "2026-10-31 20:11:56 IST",
+  "last_updated_ist": "2026-11-01 00:19:15 IST",
   "portfolio": {
     "initial_capital": 10000.0,
     "cash_balance": 7772.90349039815,
@@ -63,7 +63,7 @@
       "stop_loss": 102.71,
       "published_ist": "2026-10-23 11:14",
       "expiry_ist": "2026-10-26 23:59",
-      "current_price": 95.78,
+      "current_price": 96.15,
       "decay_pct": 100.0
     },
     {
